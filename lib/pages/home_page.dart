@@ -1,9 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:my_wall/components/drawer.dart';
 import 'package:my_wall/components/text_field.dart';
 import 'package:my_wall/components/wall_post.dart';
+import 'package:my_wall/pages/profile_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -33,8 +34,27 @@ class _HomePageState extends State<HomePage> {
         'UserEmail': currentUser.email,
         'Message': textController.text,
         'TimeStamp': Timestamp.now(),
+        'Likes': [],
       });
     }
+    // clear the text field
+    setState(() {
+      textController.clear();
+    });
+  }
+
+  // navigate to profile page
+  void goToProfilePage() {
+    // pop menu drawer
+    Navigator.pop(context);
+
+    // go to profile page
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const ProfilePage(),
+      ),
+    );
   }
 
   @override
@@ -51,16 +71,10 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
         ),
-        actions: [
-          // sign out button
-          IconButton(
-            onPressed: signOut,
-            icon: const Icon(
-              Icons.logout,
-              color: Colors.white,
-            ),
-          ),
-        ],
+      ),
+      drawer: MyDrawer(
+        onProfileTap: goToProfilePage,
+        onSignOut: signOut,
       ),
       body: Center(
         child: Column(
@@ -85,6 +99,8 @@ class _HomePageState extends State<HomePage> {
                         return WallPost(
                           message: post['Message'],
                           user: post['UserEmail'],
+                          postId: post.id,
+                          likes: List<String>.from(post["Likes"] ?? []),
                         );
                       },
                     );
@@ -124,7 +140,13 @@ class _HomePageState extends State<HomePage> {
             ),
 
             // logged in as
-            Text("Logged in as: ${currentUser.email!}"),
+            Text(
+              "Logged in as: ${currentUser.email!}",
+              style: const TextStyle(color: Colors.grey),
+            ),
+            const SizedBox(
+              height: 30,
+            ),
           ],
         ),
       ),
