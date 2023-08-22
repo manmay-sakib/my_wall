@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:my_wall/components/comment_button.dart';
 import 'package:my_wall/components/like_button.dart';
+import 'package:my_wall/components/comment.dart';
 
 class WallPost extends StatefulWidget {
   final String message;
@@ -25,6 +27,9 @@ class _WallPostState extends State<WallPost> {
   // get current user
   final currentUser = FirebaseAuth.instance.currentUser!;
   bool isLiked = false;
+
+  // comment text field controller
+  final _commentTextController = TextEditingController();
 
   @override
   void initState() {
@@ -53,6 +58,68 @@ class _WallPostState extends State<WallPost> {
     }
   }
 
+  // add a comment
+  void addComment(String commentText) {
+    // write the comment to firestore under the comments collection for this post
+    FirebaseFirestore.instance
+        .collection("User Posts")
+        .doc(widget.postId)
+        .collection('Comments')
+        .add({
+      "CommentText": commentText,
+      "CommentedBy": currentUser.email,
+      "CommentTime": Timestamp.now() // remember to format this when displaying
+    });
+  }
+
+  // show a dialog box for adding comment
+  void showCommentDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Add Comment"),
+        content: TextField(
+          controller: _commentTextController,
+          decoration: const InputDecoration(
+            hintText: "Write a comment..",
+          ),
+        ),
+        actions: [
+          // cancel button
+          TextButton(
+            onPressed: () {
+              // pop the box
+              Navigator.pop(context);
+
+              // clear the controller
+              _commentTextController.clear();
+            },
+            child: const Text(
+              "Cancel",
+            ),
+          ),
+
+          // post button
+          TextButton(
+            onPressed: () {
+              // add comment
+              addComment(_commentTextController.text);
+
+              // pop box
+              Navigator.pop(context);
+
+              // clear controller
+              _commentTextController.clear();
+            },
+            child: const Text(
+              "Post",
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -62,59 +129,107 @@ class _WallPostState extends State<WallPost> {
       ),
       margin: const EdgeInsets.only(top: 25, left: 25, right: 25),
       padding: const EdgeInsets.all(25),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Column(
-            children: [
-              // like button
-              LikeButton(
-                isLiked: isLiked,
-                onTap: toggleLike,
-              ),
-              const SizedBox(
-                height: 5,
-              ),
-              // like count
-              Text(
-                widget.likes.length.toString(),
-                style: const TextStyle(
-                  color: Colors.grey,
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(width: 10),
-
-          // message and user email
+          //wall post
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Post
+              Text(widget.message),
+              const SizedBox(height: 5),
+
+              // user
               Text(
                 widget.user,
                 style: TextStyle(
                   color: Colors.grey[500],
                 ),
               ),
-              const SizedBox(height: 10),
-              Text(widget.message),
             ],
-          )
+          ),
+          const SizedBox(height: 20),
+
+          // buttons
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Like
+              Column(
+                children: [
+                  // like button
+                  LikeButton(
+                    isLiked: isLiked,
+                    onTap: toggleLike,
+                  ),
+                  const SizedBox(
+                    height: 5,
+                  ),
+                  // like count
+                  Text(
+                    widget.likes.length.toString(),
+                    style: const TextStyle(
+                      color: Colors.grey,
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(
+                width: 10,
+              ),
+
+              // Comment
+              Column(
+                children: [
+                  // comment button
+                  CommentButton(onTap: showCommentDialog),
+                  const SizedBox(
+                    height: 5,
+                  ),
+                  // comment count
+                  Text(
+                    '0',
+                    style: const TextStyle(
+                      color: Colors.grey,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          // comments under the post
+          StreamBuilder(
+            stream: FirebaseFirestore.instance
+                .collection('User Posts')
+                .doc(widget.postId)
+                .collection("Comments")
+                .orderBy("CommentTime", descending: true)
+                .snapshots(),
+            builder: (context, snapshot) {
+              // show the loading circle if no data yet
+              if (!snapshot.hasData) {
+                return const Center(
+                  child: CircularProgressIndicator(),
+                );
+              }
+              return ListView(
+                shrinkWrap: true, // for nested Lists
+                physics: const NeverScrollableScrollPhysics(),
+                children: snapshot.data!.docs.map((doc) {
+                  final commentdata = doc.data() as Map<String, dynamic>;
+                  return Comment(
+                    text: commentdata["CommentText"],
+                    user: commentdata["CommentedBy"],
+                    time: commentdata["CommentTime"],
+                  );
+                }).toList(),
+              );
+            },
+          ),
         ],
       ),
     );
   }
 }
-// profile pic
-/*
-Container(
-decoration: BoxDecoration(
-shape: BoxShape.circle,
-color: Colors.grey[400],
-),
-padding: const EdgeInsets.all(10),
-child: const Icon(
-Icons.person,
-color: Colors.white,
-),
-),*/
