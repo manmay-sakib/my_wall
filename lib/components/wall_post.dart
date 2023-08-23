@@ -2,13 +2,17 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:my_wall/components/comment_button.dart';
+import 'package:my_wall/components/delete_button.dart';
 import 'package:my_wall/components/like_button.dart';
 import 'package:my_wall/components/comment.dart';
+
+import '../helper/helper.dart';
 
 class WallPost extends StatefulWidget {
   final String message;
   final String user;
   final String postId;
+  final String time;
   final List<String> likes;
 
   const WallPost({
@@ -17,6 +21,7 @@ class WallPost extends StatefulWidget {
     required this.user,
     required this.postId,
     required this.likes,
+    required this.time,
   });
 
   @override
@@ -120,11 +125,64 @@ class _WallPostState extends State<WallPost> {
     );
   }
 
+  // delete a post
+  void deletePost() {
+    // show a dialog box asking for confirmation before deleting the post
+    showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+              title: Text("Delete Post"),
+              content: Text("Are you sure to delete?"),
+              actions: [
+                // Cancel button
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("Cancel"),
+                ),
+
+                // Delete button
+                TextButton(
+                  onPressed: () async {
+                    // delete the comments from firestore first
+                    // (if you only delete the post, the comments will still be stored in firestore.
+                    // have to delete them first)
+                    final commentDocs = await FirebaseFirestore.instance
+                        .collection("User Posts")
+                        .doc(widget.postId)
+                        .collection('Comments')
+                        .get();
+                    for (var doc in commentDocs.docs) {
+                      await FirebaseFirestore.instance
+                          .collection('User Posts')
+                          .doc(widget.postId)
+                          .collection('Comments')
+                          .doc(doc.id)
+                          .delete();
+                    }
+
+                    // then delete the post
+                    FirebaseFirestore.instance
+                        .collection('User Posts')
+                        .doc(widget.postId)
+                        .delete()
+                        .then((value) => debugPrint("post deleted"))
+                        .catchError((error) =>
+                            debugPrint("Failed to delete post: $error"));
+
+                    // dismiss the dialog
+                    Navigator.pop(context);
+                  },
+                  child: const Text("Delete"),
+                ),
+              ],
+            ));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.primary,
         borderRadius: BorderRadius.circular(8),
       ),
       margin: const EdgeInsets.only(top: 25, left: 25, right: 25),
@@ -133,22 +191,52 @@ class _WallPostState extends State<WallPost> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           //wall post
-          Column(
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Post
-              Text(widget.message),
-              const SizedBox(height: 5),
+              // group of text(message + user email)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Post
+                  Text(widget.message),
+                  const SizedBox(height: 5),
 
-              // user
-              Text(
-                widget.user,
-                style: TextStyle(
-                  color: Colors.grey[500],
-                ),
+                  // user
+                  Row(
+                    children: [
+                      Text(
+                        widget.user,
+                        style: TextStyle(
+                          color: Colors.grey[400],
+                        ),
+                      ),
+                      Text(
+                        '.',
+                        style: TextStyle(
+                          color: Colors.grey[400],
+                        ),
+                      ),
+                      const SizedBox(
+                        width: 5,
+                      ),
+                      Text(
+                        widget.time,
+                        style: TextStyle(
+                          color: Colors.grey[400],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
+              // delete button
+              if (widget.user == currentUser.email)
+                DeleteButton(onTap: deletePost),
             ],
           ),
+
           const SizedBox(height: 20),
 
           // buttons
@@ -179,6 +267,9 @@ class _WallPostState extends State<WallPost> {
               const SizedBox(
                 width: 10,
               ),
+              const SizedBox(
+                width: 10,
+              ),
 
               // Comment
               Column(
@@ -189,9 +280,9 @@ class _WallPostState extends State<WallPost> {
                     height: 5,
                   ),
                   // comment count
-                  Text(
+                  const Text(
                     '0',
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: Colors.grey,
                     ),
                   ),
@@ -222,7 +313,7 @@ class _WallPostState extends State<WallPost> {
                   return Comment(
                     text: commentdata["CommentText"],
                     user: commentdata["CommentedBy"],
-                    time: commentdata["CommentTime"],
+                    time: formatDate(commentdata["CommentTime"]),
                   );
                 }).toList(),
               );

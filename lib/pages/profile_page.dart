@@ -68,7 +68,7 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
     );
     // update to firestore
-    if (newValue.trim().length > 0) {
+    if (newValue.trim().isNotEmpty) {
       // only update if there is something in the textfeild
       await usersCollection.doc(currentUser.email).update({field: newValue});
     }
@@ -77,13 +77,11 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[300],
+      backgroundColor: Theme.of(context).colorScheme.background,
       appBar: AppBar(
-        backgroundColor: Colors.grey[900],
         title: const Center(
           child: Text(
             "Profile Page",
-            style: TextStyle(color: Colors.white),
           ),
         ),
       ),
