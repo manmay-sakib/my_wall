@@ -69,7 +69,7 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         title: const Center(
           child: Text(
-            "The Wall",
+            "M Y  W A L L",
           ),
         ),
       ),

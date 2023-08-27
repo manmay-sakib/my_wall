@@ -191,51 +191,43 @@ class _WallPostState extends State<WallPost> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           //wall post
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // group of text(message + user email)
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Post
-                  Text(widget.message),
-                  const SizedBox(height: 5),
+              // Post
+              Text(widget.message),
+              const SizedBox(height: 5),
 
-                  // user
-                  Row(
-                    children: [
-                      Text(
-                        widget.user,
-                        style: TextStyle(
-                          color: Colors.grey[400],
-                        ),
-                      ),
-                      Text(
-                        '.',
-                        style: TextStyle(
-                          color: Colors.grey[400],
-                        ),
-                      ),
-                      const SizedBox(
-                        width: 5,
-                      ),
-                      Text(
-                        widget.time,
-                        style: TextStyle(
-                          color: Colors.grey[400],
-                        ),
-                      ),
-                    ],
+              // user
+              Row(
+                children: [
+                  Text(
+                    widget.user,
+                    style: TextStyle(
+                      color: Colors.grey[400],
+                    ),
+                  ),
+                  Text(
+                    '.',
+                    style: TextStyle(
+                      color: Colors.grey[400],
+                    ),
+                  ),
+                  const SizedBox(
+                    width: 5,
+                  ),
+                  Text(
+                    widget.time,
+                    style: TextStyle(
+                      color: Colors.grey[400],
+                    ),
                   ),
                 ],
               ),
-              // delete button
-              if (widget.user == currentUser.email)
-                DeleteButton(onTap: deletePost),
             ],
           ),
+          // delete button
+          if (widget.user == currentUser.email) DeleteButton(onTap: deletePost),
 
           const SizedBox(height: 20),
 
